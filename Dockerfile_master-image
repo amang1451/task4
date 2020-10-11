@@ -1,0 +1,47 @@
+FROM centos
+RUN yum install wget -y
+RUN yum install sudo -y
+RUN yum install curl -y
+RUN yum install git -y
+RUN yum install net-tools -y
+#jenkins installation
+RUN wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+RUN rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+RUN yum upgrade -y
+RUN yum install java-1.8.0-openjdk-devel -y
+RUN yum install jenkins -y
+
+RUN echo 'jenkins ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+
+RUN chmod +x ./kubectl 
+RUN sudo mv ./kubectl /usr/local/bin/kubectl
+RUN kubectl version --client
+RUN export PATH=/usr/local/bin/kubectl:$PATH
+
+COPY config /root/.kube/
+COPY ca.crt /root/
+COPY client.crt /root/
+COPY client.key /root/
+
+RUN yum install ca-certificates -y
+RUN yum install curl -y
+RUN yum install gnupg2 -y
+RUN yum install dnf -y
+# setup repository for docker
+RUN dnf install 'dnf-command(config-manager)' -y
+RUN dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo -y
+#some basic software
+RUN yum install net-tools -y
+# install docker
+RUN yum install docker-ce --nobest -y
+RUN sudo usermod -a -G docker jenkins
+#install git
+RUN yum install git -y
+# this is the most important command
+CMD chmod 777 /var/run/docker.sock && java -jar /usr/lib/jenkins/jenkins.war
+
+CMD java -jar /usr/lib/jenkins/jenkins.war
+
+
+EXPOSE 8080
